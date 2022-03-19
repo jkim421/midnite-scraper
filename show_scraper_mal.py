@@ -6,16 +6,13 @@ from sys import argv
 from utils.mongo_connect import connect_to_midnite
 from utils.db_actions_mal import get_existing_data, insert_show, update_show
 
-#  CURRENT MAX mal_id: 50886
-#  LAST HIT: 55231
-SAMPLE = 51000
-mal_id = 15
-
 ERROR_MESSAGES = ["not-found"]
 
-MAL_CLIENT_ID, MONGO_PASSWORD = argv
+MAL_CLIENT_ID, MONGO_PASSWORD, START_ID, SAMPLE = argv
 
 collection = connect_to_midnite(MONGO_PASSWORD)
+
+mal_id = START_ID
 
 for id in range(1, SAMPLE):
     print(f"Sending GET request for { mal_id }...")

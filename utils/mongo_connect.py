@@ -1,13 +1,16 @@
 import pymongo
 
-connection_str = "mongodb+srv://admin:science2@midnite-db.ujffr.mongodb.net/midnite?retryWrites=true&w=majority"
-db_name = "midnite"
-# collection_name = "shows_jikan"
-collection_name = "shows_mal"
+# connection_str = "mongodb+srv://admin:science2@midnite-db.ujffr.mongodb.net/midnite?retryWrites=true&w=majority"
+DB_NAME = "midnite"
+COLLECTION_NAM = "shows_mal"
 
-def connect_to_midnite():
+def get_connection_str(password):
+  return f"mongodb+srv://admin:{password}@midnite-db.ujffr.mongodb.net/midnite?retryWrites=true&w=majority"
+
+def connect_to_midnite(password):
+    connection_str = get_connection_str(password)
     mongo_client = pymongo.MongoClient(connection_str)
-    db = mongo_client[db_name]
-    collection = db[collection_name]
+    db = mongo_client[DB_NAME]
+    collection = db[COLLECTION_NAM]
 
     return collection

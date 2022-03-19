@@ -45,6 +45,5 @@ for id in range(1, SAMPLE):
     print(f"---------------------- SLEEPING --------------------------")
     print('')
 
-    # mal_id += 1
-    # time.sleep(3)
-    
+    mal_id += 1
+    time.sleep(1)

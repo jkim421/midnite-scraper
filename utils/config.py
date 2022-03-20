@@ -3,7 +3,4 @@ API_FIELDS = "id,title,main_picture,alternative_titles,start_date,end_date,synop
 
 ERROR_STATUSES = [403, 404]
 
-# Number of unsuccessful calls before terminating script
-FAIL_LIMIT = 200
-
 SLEEP_TIME = 0.1

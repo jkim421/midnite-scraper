@@ -12,13 +12,14 @@ SYNOPSIS
 def log_retry(res, mal_id):
     print(f'''
 {res.text}
+
 RETRYING
 MAL_ID        {mal_id}
+
 ----------------------------------------------------------------
 
     ''')
 
 
-def log_error(show_data, fail_count):
+def log_error(show_data):
     print(f"ERROR         {show_data['error']}")
-    print(f"FAIL COUNT    {fail_count}")

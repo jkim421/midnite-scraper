@@ -1,5 +1,4 @@
 import json
-from pprint import pprint
 
 # Method to remove unnecessary properties from show JSON
 properties_to_remove = [
@@ -107,10 +106,10 @@ def get_existing_data(mal_id, collection):
     match = collection.find_one({ "mal_id": mal_id })
 
     if match:
-      print(f"Data exists in collection for { mal_id }")
+      print(f"Data exists in collection for { mal_id }...")
       return match
     else:
-      print(f"No data in collection for { mal_id }")
+      print(f"No data in collection for { mal_id }...")
       return None
 
 # Method to write show JSON data to DynamoDB
@@ -130,10 +129,10 @@ def update_show(prev_data, show_data, collection, mal_id):
     curr = json.dumps(cleaned_res, sort_keys=True)
 
     if prev != curr:
-        print(f"Show data has changed - UPDATING data for { mal_id }")
+        print(f"Show data has changed - UPDATING data for { mal_id }...")
 
         collection.replace_one({ "mal_id": mal_id }, cleaned_res)
 
         return mal_id
     else:
-        print(f"Show data is unchanged. SKIPPING update for { mal_id }.")
+        print(f"Show data is unchanged - SKIPPING update for { mal_id }...")

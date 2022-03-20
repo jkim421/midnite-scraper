@@ -1,47 +1,63 @@
 import requests
 import time
-from sys import argv
-# from pprint import pprint
+from sys import argv, exit
 
 from utils.mongo_connect import connect_to_midnite
 from utils.db_actions_mal import get_existing_data, insert_show, update_show
-
-ERROR_MESSAGES = ["not-found"]
+from utils.config import API_URL, API_FIELDS, ERROR_STATUSES, FAIL_LIMIT, SLEEP_TIME
+from utils.logging import log_show_info, log_error, log_retry
 
 MAL_CLIENT_ID, MONGO_PASSWORD, START_ID, SAMPLE = argv
 
 collection = connect_to_midnite(MONGO_PASSWORD)
 
 mal_id = START_ID
+fail_count = 0
 
 for id in range(1, SAMPLE):
-    print(f"Sending GET request for { mal_id }...")
+    print(f"Sending GET request for { mal_id }...\n")
 
     res = requests.get(
-      f"https://api.myanimelist.net/v2/anime/{mal_id}?fields=id,title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,num_list_users,num_scoring_users,nsfw,created_at,updated_at,media_type,status,genres,my_list_status,num_episodes,start_season,source,rating,background,recommendations,studios,statistics",
-      headers={
-        "Content-Type": 'application/json',
-        "X-MAL-CLIENT-ID": MAL_CLIENT_ID,
-      }
+        f"{API_URL}/{mal_id}?fields={API_FIELDS}",
+        headers={
+            "Content-Type": 'application/json',
+            "X-MAL-CLIENT-ID": MAL_CLIENT_ID,
+        }
     )
-    show_data = res.json()
 
-    if 'error' in show_data:
-        print(f"ERROR {show_data['error']}")
+    status=res.status_code
+    print(f"STATUS        {status}")
+
+    if status == 403:
+        log_retry(res, mal_id)
+        time.sleep(5)
     else:
-      prev_data = get_existing_data(mal_id, collection)
+        show_data = res.json()
 
-      if prev_data:
-          show_id = update_show(prev_data, show_data, collection, mal_id)
-          if show_id != None:
-            print(f"UPDATE for show { show_id } succeeded...")
-      else:
-          show_id = insert_show(show_data, collection, mal_id)
-          print(f"INSERT for show { show_id } succeeded...")
+        if status in ERROR_STATUSES:
+            fail_count += 1
+            log_error(status, show_data, fail_count)
 
-    print('')
-    print(f"---------------------- SLEEPING --------------------------")
-    print('')
+            if fail_count > FAIL_LIMIT:
+                exit()
+        else:
+            if "title" in show_data:
+                log_show_info(show_data)
 
-    mal_id += 1
-    time.sleep(1)
+            prev_data = get_existing_data(mal_id, collection)
+
+            if prev_data:
+                show_id = update_show(prev_data, show_data, collection, mal_id)
+                if show_id != None:
+                  print(f"UPDATE for show { show_id } succeeded...")
+            else:
+                show_id = insert_show(show_data, collection, mal_id)
+                print(f"INSERT for show { show_id } succeeded...")
+
+        print(f"\n----------------------------------------------------------------\n")
+
+        mal_id += 1
+        fail_count = 0
+
+        time.sleep(SLEEP_TIME)
+

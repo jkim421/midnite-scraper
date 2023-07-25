@@ -45,6 +45,8 @@ def run_scraper():
                   show_id = update_show(prev_data, show_data, collection, mal_id)
                   if show_id != None:
                     print(f"UPDATE for show { show_id } succeeded...")
+                  else:
+                    print(f"FAILED to UPDATE show { show_id }...")   
               else:
                   show_id = insert_show(show_data, collection, mal_id)
                   print(f"INSERT for show { show_id } succeeded...")

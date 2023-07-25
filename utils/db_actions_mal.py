@@ -1,6 +1,8 @@
 import json
 
 # Method to remove unnecessary properties from show JSON
+# User properties would trigger unnecessary updates
+
 properties_to_remove = [
     "created_at",
     "my_list_status",
@@ -8,6 +10,9 @@ properties_to_remove = [
     "average_episode_duration",
     "background",
     "related_manga",
+    "num_list_users", 
+    "num_scoring_users",
+    "statistics",
 ]
 
 property_rename_map = {

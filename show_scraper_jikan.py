@@ -1,46 +1,103 @@
 import requests
 import time
-from pprint import pprint
+from sys import argv, exit
 
 from utils.mongo_connect import connect_to_midnite
 from utils.db_actions_jikan import get_existing_data, insert_show, update_show
+from utils.config import API_URL, ERROR_STATUSES, SLEEP_TIME, MAX_RETRIES
+from utils.logging import log_show_info, log_error, log_retry
 
-collection = connect_to_midnite()
+MAL_CLIENT_ID, MONGO_PASSWORD = argv
 
-ERROR_CODES = [400, 404, 429, 500, 503]
-LIMIT = 20000
-mal_id = 58
-#  CURRENT MAX mal_id: 50886
-#  LAST HIT: 55231
+#  MAX CHECKED mal_id: 60000
+#  CURRENT MAX mal_id: 56250
+START_ID = 1
+END_ID = 60000
 
-for id in range(1, LIMIT):
-    print(f"Sending GET request for { mal_id }...")
+def run_scraper():
+    collection = connect_to_midnite(MONGO_PASSWORD)
 
-    res = requests.get(f"https://api.jikan.moe/v4/anime/{ mal_id }/")
-    res_json = res.json()
-    # res_status = res_json["data"]["status"]
-    res_status = res_json["data"]["status"] if 'data' in res_json else res_json["status"]
+    rate_limit_count = 0
+    server_error_count = 0
 
-    # pprint(res_json, sort_dicts=False)
+    for mal_id in range(START_ID, END_ID):
+        retries = 0
 
-    if res_status in ERROR_CODES:
-        print(f"ERROR { res_status } ")
-    else:
-      show_data = res_json["data"]
-      prev_data = get_existing_data(mal_id, collection)
+        while retries <= MAX_RETRIES:
+            print(f"Sending GET request for { mal_id }...\n")
 
-      if prev_data:
-          show_id = update_show(prev_data, show_data, collection, mal_id)
-          if show_id != None:
-            print(f"UPDATE for show { show_id } succeeded...")
-      else:
-          show_id = insert_show(show_data, collection, mal_id)
-          print(f"INSERT for show { show_id } succeeded...")
+            res = requests.get(
+                f"{API_URL}/{mal_id}/full",
+                headers={
+                    "Content-Type": 'application/json',
+                }
+            )
 
-    print('')
-    print(f"---------------------- SLEEPING --------------------------")
-    print('')
+            status = res.status_code
 
-    mal_id += 1
-    time.sleep(3)
+            print(f"STATUS        {status}")
+
+            if status == 404:
+                print(f"NO DATA for mal_id: {mal_id}...\n")
+
+                break
+            elif status == 429:
+                print(f"RATE LIMITED - retrying fetch for {mal_id}...\n")
+
+                rate_limit_count+= 1
+                
+                retries += 1
+                time.sleep(1)
+            elif status == 500:
+                print(f"JIKAN SERVER ERROR - retrying fetch for {mal_id}...\n")
+
+                server_error_count += 1
+
+                retries += 1
+                time.sleep(10)
+            else:
+                show_data = res.json()["data"]
+
+                if (show_data["status"]) == 404:
+                    print(f"RECEIVED STATUS 200, BUT 404 NO DATA for mal_id: {mal_id}...\n")
+                    break
+                if (show_data["status"]) == 500:
+                    print(f"RECEIVED STATUS 200, BUT 500 SERVER ERROR for mal_id: {mal_id}...\n")
+                    break
+
+
+                if status in ERROR_STATUSES:
+                    log_error(show_data)
+
+                else:
+                    if "title" in show_data:
+                        log_show_info(show_data)
+
+                    prev_data = get_existing_data(mal_id, collection)
+
+
+                    if prev_data:
+                        show_id = update_show(prev_data, show_data, collection, mal_id)
+                        if show_id != None:
+                            print(f"UPDATE for show { show_id } succeeded...")
     
+                    else:
+                        show_id = insert_show(show_data, collection, mal_id)
+                        print(f"INSERT for show { show_id } succeeded...")
+
+                break
+
+            if retries > MAX_RETRIES:
+                print(f"MAX RETRIES reached for mal_id {mal_id}...")
+                continue
+
+        print(f"\n----------------------------------------------------------------\n")
+
+        time.sleep(SLEEP_TIME)
+
+    print(f"\n----------------------------------------------------------------\n")
+    print(f"rate_limit_count: {rate_limit_count}")
+    print(f"server_error_count: {server_error_count}")
+    print(f"\n----------------------------------------------------------------\n")
+
+run_scraper()

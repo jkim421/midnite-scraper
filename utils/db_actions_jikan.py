@@ -1,48 +1,96 @@
 import json
+from datetime import datetime
 from pprint import pprint
+
 
 # Method to remove unnecessary properties from show JSON
 properties_to_remove = [
-  "request_hash",
-  "request_cached",
-  "request_cache_expiry",
-  "trailer_url",
+  "trailer",
+  "approved",
+  "title_english",
   "title_japanese",
   "title_synonyms",
-  "related",
+  "airing",
+  "duration",
+  "favorites",
+  "background",
+  "season",
+  "year",
+  "broadcast",
   "producers",
   "licensors",
-  "opening_themes",
-  "ending_themes",
-  "external_links",
-  "premiered",
-  "broadcast",
+  "relations",
+  "explicit_genres",
+  # for /full endpoint
+  "theme",
+  "external",
+  "streaming",
 ]
 
 properties_to_flatten = [
   "studios",
   "genres",
-  "explicit_genres",
   "themes",
   "demographics",
 ]
 
+def get_year_from_iso_date(iso_date):
+  if iso_date == None:
+    return None
+
+  date_obj = datetime.fromisoformat(iso_date)
+  year = date_obj.year
+
+  return year
+
+
 def clean_show(json):
-    for property in properties_to_remove:
-        if json.get(property) is not None:
-            del json[property]
+    # delete properties to remove
+    for field in properties_to_remove:
+        if field in json:
+            del json[field]
 
-    for property in properties_to_flatten:
-      if json.get(property) is not None:
-        data = json[property]
-        flattened_data = []
+    # flatten properties that are lists of dicts with "name" field
+    for field in properties_to_flatten:
+        if json.get(field) is not None:
+            data = json[field]
 
-        for datum in data:
-          name = datum["name"]
-          flattened_data.append(name)
+            json[field] = sorted([item["name"] for item in data])
 
-        json[property] = flattened_data
-    
+    # clean .titles field
+    titles = json.get("titles", {})
+
+    default_title = next((item for item in titles if item["type"] == "Default"), {})
+    english_title = next((item for item in titles if item["type"] == "English"), {})
+
+    json["titles"] = {
+      "default": default_title.get("title"),
+      "english": english_title.get("title"),
+    }
+
+    # clean .images field
+    images = json.get("images", {})
+    webp = images.get("webp", {})
+
+    json["images"] = {
+        "small": webp.get("image_url"),
+        "large": webp.get("large_image_url"),
+    }
+
+    # append start/end years from .aired 
+    air_dates = json.get("aired", {})
+
+    json["years"] = {
+        "start": get_year_from_iso_date(air_dates.get("from")),
+        "end": get_year_from_iso_date(air_dates.get("to")),
+    }
+
+    del json["aired"]
+
+    # flatten studios
+    # studios = json.get("studios", [])
+    # json["studios"] = sorted([item["name"] for item in studios])
+
     return json
 
 def get_existing_data(mal_id, collection):

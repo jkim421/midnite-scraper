@@ -15,7 +15,7 @@ properties_to_remove = [
     "statistics",
 ]
 
-property_rename_map = {
+field_rename_map = {
     "id": "mal_id",
     "main_picture": "pictures",
     "alternative_titles": "alt_titles",
@@ -25,22 +25,22 @@ property_rename_map = {
 }
 
 def remove_properties(json):
-    for property in properties_to_remove:
-        if json.get(property) is not None:
-            del json[property]
+    for field in properties_to_remove:
+        if json.get(field) is not None:
+            del json[field]
 
 def rename_properties(json):
-    for property in property_rename_map.keys():
-        if json.get(property) is not None:
-            new_name = property_rename_map[property]
-            current = json[property]
+    for field in field_rename_map.keys():
+        if json.get(field) is not None:
+            new_name = field_rename_map[field]
+            current = json[field]
 
             json[new_name] = current
-            del json[property]
+            del json[field]
 
-def get_format_by_name(property):
+def get_format_by_name(field):
     def format_by_name(json):
-        rawData = json[property]
+        rawData = json[field]
         formatted = []
 
         for datum in rawData:
@@ -85,7 +85,7 @@ def format_recommendations(json):
 
     return formatted
 
-property_formatter_map = {
+field_formatter_map = {
     "genres": get_format_by_name("genres"),
     "studios": get_format_by_name("studios"),
     "relation_type_formatted": format_related,
@@ -93,12 +93,12 @@ property_formatter_map = {
 }
 
 def format_properties(json):
-    for property in property_formatter_map.keys():
-        if json.get(property) is not None:
-            formatter = property_formatter_map[property]
+    for field in field_formatter_map.keys():
+        if json.get(field) is not None:
+            formatter = field_formatter_map[field]
             formatted = formatter(json)
 
-            json[property] = formatted
+            json[field] = formatted
 
 def clean_show(json):
     remove_properties(json)

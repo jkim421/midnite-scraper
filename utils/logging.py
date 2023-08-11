@@ -1,11 +1,9 @@
 def log_show_info(show_data):
     print(f'''
+MAL_ID        {show_data["mal_id"]}
 TITLE         {show_data["title"]}
-ENG TITLE     {show_data['alternative_titles']["en"]}
-ALT TITLES    {show_data['alternative_titles']["synonyms"]}
-
-SYNOPSIS
-{show_data['synopsis']}
+ENG TITLE     {show_data["title_english"]}
+JP TITLE      {show_data["title_japanese"]}
     ''')
 
 
